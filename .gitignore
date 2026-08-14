@@ -1,0 +1,25 @@
+# Composer
+/composer.lock
+/vendor/
+
+# Studio
+studio.json
+
+# NPM
+node_modules/
+package-lock.json
+
+# PhpUnit
+/.phpunit.result.cache
+/.phpunit.cache
+/phpunit.xml
+
+# Tools
+/tools/*/vendor
+
+# PHPStorm
+.idea/
+
+# Mac
+.DS_Store
+

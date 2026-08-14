@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<phpunit
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+        bootstrap="vendor/autoload.php"
+        cacheDirectory=".phpunit.cache"
+        colors="true"
+>
+    <testsuites>
+        <testsuite name="Contao Folder Gallery Download Extension Bundle">
+            <directory>tests</directory>
+        </testsuite>
+    </testsuites>
+
+    <coverage>
+        <report>
+            <html outputDirectory=".phpunit.result.cache/coverage/html"/>
+            <text outputFile="php://stdout"/>
+            <clover outputFile=".phpunit.result.cache/coverage/clover.xml"/>
+        </report>
+    </coverage>
+
+    <source>
+        <include>
+            <directory>src</directory>
+        </include>
+    </source>
+
+    <php>
+        <ini name="error_reporting" value="-1"/>
+        <server name="APP_ENV" value="test"/>
+    </php>
+</phpunit>

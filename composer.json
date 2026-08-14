@@ -1,0 +1,94 @@
+{
+  "name": "cgoit/contao-folder-gallery-download-extension-bundle",
+  "description": "Adds download functionality to Contao Folder Gallery galleries.",
+  "keywords": [
+    "contao",
+    "gallery",
+    "image gallery",
+    "folder",
+    "download",
+    "zip"
+  ],
+  "license": "LGPL-3.0-or-later",
+  "type": "contao-bundle",
+  "version": "0.1.0",
+  "authors": [
+    {
+      "name": "Carsten Götzinger",
+      "homepage": "https://github.com/cgoIT"
+    }
+  ],
+  "homepage": "https://github.com/cgoIT",
+  "support": {
+    "issues": "https://github.com/cgoIT/contao-folder-gallery-download-extension-bundle/issues",
+    "source": "https://github.com/cgoIT/contao-folder-gallery-download-extension-bundle"
+  },
+  "require": {
+    "php": "^8.3",
+    "contao/core-bundle": "^5.7",
+    "cgoit/contao-folder-gallery-bundle": "^1.5",
+    "symfony/config": "^7.3",
+    "symfony/dependency-injection": "^7.3",
+    "symfony/http-foundation": "^7.3",
+    "symfony/http-kernel": "^7.3",
+    "symfony/routing": "^7.3",
+    "symfony/translation-contracts": "^3.7"
+  },
+  "require-dev": {
+    "contao/manager-plugin": "^2.0",
+    "contao/test-case": "^5.7",
+    "terminal42/contao-build-tools": "dev-main",
+    "phpunit/phpunit": "^12.5 || ^13.2"
+  },
+  "repositories": [
+    {
+      "type": "path",
+      "url": "../contao-folder-gallery-bundle",
+      "options": {
+        "symlink": true
+      }
+    }
+  ],
+  "conflict": {
+    "contao/manager-plugin": "<2.0 || >= 3.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Cgoit\\ContaoFolderGalleryDownloadExtensionBundle\\": "src/",
+      "Cgoit\\ContaoFolderGalleryDownloadExtensionBundle\\Tests\\": "tests/"
+    }
+  },
+  "config": {
+    "allow-plugins": {
+      "contao-components/installer": false,
+      "php-http/discovery": false,
+      "contao/manager-plugin": false,
+      "terminal42/contao-build-tools": true
+    }
+  },
+  "extra": {
+    "contao-manager-plugin": "Cgoit\\ContaoFolderGalleryDownloadExtensionBundle\\ContaoManager\\Plugin"
+  },
+  "scripts": {
+    "post-install-cmd": [
+      "@patch-rector-config"
+    ],
+    "post-update-cmd": [
+      "@patch-rector-config"
+    ],
+    "patch-rector-config": "@php tools/patch-rector-config.php",
+
+    "phpunit": "vendor/bin/phpunit --no-coverage",
+    "phpunit:coverage": "XDEBUG_MODE=coverage vendor/bin/phpunit --testdox",
+    "unit-tests": "@phpunit",
+    "all": [
+      "@ecs",
+      "@rector",
+      "@phpstan",
+      "@twig-cs-fixer",
+      "@yamllint",
+      "@depcheck",
+      "@phpunit"
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+services:
+   _defaults:
+      autoconfigure: true
+      autowire: true
+      public: true
+
+   Cgoit\ContaoFolderGalleryDownloadExtensionBundle\:
+      resource: ../src
+      exclude: ../src/{ContaoManager,DependencyInjection,CgoitFolderGalleryBundle.php}

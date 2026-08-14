@@ -1,0 +1,4 @@
+download_gallery:
+  action:
+    label: Download gallery
+    title: Download all images in the gallery as a ZIP file
