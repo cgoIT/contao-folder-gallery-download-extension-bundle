@@ -30,7 +30,7 @@
     "php": "^8.3",
     "ext-zip": "*",
     "contao/core-bundle": "^5.7",
-    "cgoit/contao-folder-gallery-bundle": "^1.5",
+    "cgoit/contao-folder-gallery-bundle": "^1.6",
     "symfony/config": "^7.3",
     "symfony/dependency-injection": "^7.3",
     "symfony/filesystem": "^7.3",
@@ -45,15 +45,6 @@
     "terminal42/contao-build-tools": "dev-main",
     "phpunit/phpunit": "^12.5 || ^13.2"
   },
-  "repositories": [
-    {
-      "type": "path",
-      "url": "../contao-folder-gallery-bundle",
-      "options": {
-        "symlink": true
-      }
-    }
-  ],
   "conflict": {
     "contao/manager-plugin": "<2.0 || >= 3.0"
   },
