@@ -12,4 +12,3 @@
 
 * use official contao-folder-gallery-bundle version and not the one from a local repository ([cca337d](https://github.com/cgoIT/contao-folder-gallery-download-extension-bundle/commit/cca337d01f7ff87165e931e78b3e1bbca9a05767))
 
-## Changelog
