@@ -16,12 +16,15 @@ use Cgoit\ContaoFolderGalleryBundle\Action\GalleryContentAction;
 use Cgoit\ContaoFolderGalleryBundle\Action\GalleryContentActionInterface;
 use Cgoit\ContaoFolderGalleryBundle\Model\GalleryFolder;
 use Cgoit\ContaoFolderGalleryBundle\Model\GalleryOverview;
+use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Controller\GalleryDownloadController;
 use Contao\PageModel;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 final readonly class DownloadGalleryAction implements GalleryContentActionInterface
 {
+    public const string ACTION_TYPE = 'download';
+
     public function __construct(
         private UrlGeneratorInterface $urlGenerator,
         private TranslatorInterface $translator,
@@ -31,13 +34,14 @@ final readonly class DownloadGalleryAction implements GalleryContentActionInterf
     public function createAction(GalleryOverview $overview, GalleryFolder $folder, PageModel $page): GalleryContentAction
     {
         return new GalleryContentAction(
+            type: self::ACTION_TYPE,
             label: $this->translator->trans(
                 'download_gallery.action.label',
                 [],
                 'cgoit_contao_folder_gallery_download_extension',
             ),
             url: $this->urlGenerator->generate(
-                'cgoit_contao_folder_gallery_download_extension',
+                GalleryDownloadController::DOWNLOAD_ROUTE_NAME,
                 [
                     'moduleId' => $overview->getModuleId(),
                     'path' => $folder->getPath(),
@@ -48,7 +52,6 @@ final readonly class DownloadGalleryAction implements GalleryContentActionInterf
                 [],
                 'cgoit_contao_folder_gallery_download_extension',
             ),
-            icon: 'download',
         );
     }
 }

@@ -1,13 +1,16 @@
 {
   "name": "cgoit/contao-folder-gallery-download-extension-bundle",
-  "description": "Adds download functionality to Contao Folder Gallery galleries.",
+  "description": "Adds downloadable ZIP archives for galleries managed by the Contao Folder Gallery Bundle.",
   "keywords": [
     "contao",
+    "contao-bundle",
+    "folder-gallery",
     "gallery",
-    "image gallery",
-    "folder",
+    "image-gallery",
+    "photo-gallery",
     "download",
-    "zip"
+    "zip",
+    "archive"
   ],
   "license": "LGPL-3.0-or-later",
   "type": "contao-bundle",
@@ -25,10 +28,12 @@
   },
   "require": {
     "php": "^8.3",
+    "ext-zip": "*",
     "contao/core-bundle": "^5.7",
     "cgoit/contao-folder-gallery-bundle": "^1.5",
     "symfony/config": "^7.3",
     "symfony/dependency-injection": "^7.3",
+    "symfony/filesystem": "^7.3",
     "symfony/http-foundation": "^7.3",
     "symfony/http-kernel": "^7.3",
     "symfony/routing": "^7.3",

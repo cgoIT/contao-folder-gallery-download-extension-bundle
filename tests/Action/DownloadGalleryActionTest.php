@@ -94,6 +94,6 @@ final class DownloadGalleryActionTest extends TestCase
         $this->assertSame('Galerie herunterladen', $result->label);
         $this->assertSame('/gallery/download/42/Folder', $result->url);
         $this->assertSame('Alle Bilder der Galerie als ZIP-Datei herunterladen', $result->title);
-        $this->assertSame('download', $result->icon);
+        $this->assertSame('download', $result->type);
     }
 }
