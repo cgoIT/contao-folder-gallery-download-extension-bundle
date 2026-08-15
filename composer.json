@@ -14,7 +14,7 @@
   ],
   "license": "LGPL-3.0-or-later",
   "type": "contao-bundle",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "authors": [
     {
       "name": "Carsten Götzinger",
@@ -73,7 +73,6 @@
       "@patch-rector-config"
     ],
     "patch-rector-config": "@php tools/patch-rector-config.php",
-
     "phpunit": "vendor/bin/phpunit --no-coverage",
     "phpunit:coverage": "XDEBUG_MODE=coverage vendor/bin/phpunit --testdox",
     "unit-tests": "@phpunit",
