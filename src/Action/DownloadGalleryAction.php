@@ -17,8 +17,10 @@ use Cgoit\ContaoFolderGalleryBundle\Action\GalleryContentActionInterface;
 use Cgoit\ContaoFolderGalleryBundle\Model\GalleryFolder;
 use Cgoit\ContaoFolderGalleryBundle\Model\GalleryOverview;
 use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Controller\GalleryDownloadController;
+use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Event\GalleryDownloadActionEvent;
 use Contao\PageModel;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 final readonly class DownloadGalleryAction implements GalleryContentActionInterface
@@ -28,11 +30,20 @@ final readonly class DownloadGalleryAction implements GalleryContentActionInterf
     public function __construct(
         private UrlGeneratorInterface $urlGenerator,
         private TranslatorInterface $translator,
+        private EventDispatcherInterface $eventDispatcher,
     ) {
     }
 
-    public function createAction(GalleryOverview $overview, GalleryFolder $folder, PageModel $page): GalleryContentAction
+    public function createAction(GalleryOverview $overview, GalleryFolder $folder, PageModel $page): GalleryContentAction|null
     {
+        $event = new GalleryDownloadActionEvent($overview, $folder, $page);
+
+        $this->eventDispatcher->dispatch($event);
+
+        if (!$event->isEnabled()) {
+            return null;
+        }
+
         return new GalleryContentAction(
             type: self::ACTION_TYPE,
             label: $this->translator->trans(

@@ -20,6 +20,7 @@ use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Action\DownloadGalleryActio
 use Contao\PageModel;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class DownloadGalleryActionTest extends TestCase
@@ -80,9 +81,12 @@ final class DownloadGalleryActionTest extends TestCase
             ])
         ;
 
+        $eventDispatcher = $this->createStub(EventDispatcherInterface::class);
+
         $action = new DownloadGalleryAction(
             $urlGenerator,
             $translator,
+            $eventDispatcher,
         );
 
         $result = $action->createAction(

@@ -130,12 +130,49 @@ des erzeugten ZIP-Archivs.
 
 ## Anpassung
 
-Die Download-Funktion wird über das Action-System des
-[Contao Folder Gallery Bundle](https://github.com/cgoIT/contao-folder-gallery-bundle)
-in die Galerieansicht integriert.
+### Download-Action über ein Event deaktivieren
 
-Die Action besitzt eine eigene CSS-Klasse und kann daher über das eigene Theme
-angepasst werden.
+Die Download-Action wird standardmäßig für jede veröffentlichte Galerie
+angezeigt. Über das Symfony Event
+`Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Event\GalleryDownloadActionEvent`
+kann die Anzeige der Action individuell beeinflusst werden.
+
+Das Event wird vor der Erstellung der Action ausgelöst und enthält den aktuellen
+`GalleryOverview`, den `GalleryFolder` sowie das `PageModel`. Die Action ist
+standardmäßig aktiviert und kann über `disable()` deaktiviert werden.
+
+Ein Event Listener kann beispielsweise den Download für bestimmte Ordner
+unterdrücken:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\EventListener;
+
+use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Event\GalleryDownloadActionEvent;
+use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
+
+#[AsEventListener]
+final class GalleryDownloadActionListener
+{
+    public function __invoke(GalleryDownloadActionEvent $event): void
+    {
+        if ('intern' === $event->folder->getPath()) {
+            $event->disable();
+        }
+    }
+}
+```
+
+Damit können beispielsweise abhängig von Ordnerpfad, Metadaten, Galerie oder
+aktueller Seite eigene Regeln für die Anzeige der Download-Action umgesetzt
+werden.
+
+### Visuelle Darstellung des Links im Frontend
+
+Die Action besitzt eine eigene CSS-Klasse und kann daher über das eigene Theme angepasst werden.
 
 Beispielsweise kann ein Download-Symbol über ein Pseudo-Element ergänzt werden:
 
@@ -145,8 +182,8 @@ Beispielsweise kann ein Download-Symbol über ein Pseudo-Element ergänzt werden
 }
 ```
 
-Die konkrete Darstellung der Actions kann außerdem über die entsprechenden
-Twig-Templates des Folder Gallery Bundles angepasst werden.
+Die konkrete Darstellung der Actions kann außerdem über die entsprechenden Twig-Templates des Folder Gallery Bundles
+angepasst werden.
 
 ## Technischer Aufbau
 
