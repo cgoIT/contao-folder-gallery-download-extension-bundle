@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/cgoIT/contao-folder-gallery-download-extension-bundle/compare/v1.1.0...v1.1.1) (2026-08-16)
+
+
+### Bug Fixes
+
+* update service exclusions to include Event directory ([e37391d](https://github.com/cgoIT/contao-folder-gallery-download-extension-bundle/commit/e37391d2a9790cd340687b7a2fc9dc6d59f4ce22))
+
 ## [1.1.0](https://github.com/cgoIT/contao-folder-gallery-download-extension-bundle/compare/v1.0.0...v1.1.0) (2026-08-16)
 
 
