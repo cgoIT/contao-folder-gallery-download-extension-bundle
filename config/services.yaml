@@ -6,4 +6,4 @@ services:
 
    Cgoit\ContaoFolderGalleryDownloadExtensionBundle\:
       resource: ../src
-      exclude: ../src/{ContaoManager,DependencyInjection,CgoitFolderGalleryDownloadExtensionBundle.php}
+      exclude: ../src/{ContaoManager,DependencyInjection,Event,CgoitFolderGalleryDownloadExtensionBundle.php}
