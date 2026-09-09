@@ -12,11 +12,10 @@ declare(strict_types=1);
 
 namespace Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Controller;
 
-use Cgoit\ContaoFolderGalleryBundle\Model\GalleryFolder;
-use Cgoit\ContaoFolderGalleryBundle\Model\GalleryImage;
 use Cgoit\ContaoFolderGalleryBundle\Provider\GalleryProviderInterface;
 use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Service\GalleryDownloadFilenameGenerator;
 use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Service\GalleryZipCreator;
+use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Service\GalleryZipImageCollector;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
@@ -41,6 +40,7 @@ final readonly class GalleryDownloadController
 
     public function __construct(
         private GalleryProviderInterface $folderProvider,
+        private GalleryZipImageCollector $imageCollector,
         private GalleryZipCreator $galleryZipCreator,
         private GalleryDownloadFilenameGenerator $filenameGenerator,
     ) {
@@ -54,7 +54,11 @@ final readonly class GalleryDownloadController
             throw new NotFoundHttpException();
         }
 
-        $images = $this->getImages($galleryFolder);
+        $images = $this->imageCollector->collect($galleryFolder);
+
+        if ([] === $images) {
+            throw new NotFoundHttpException();
+        }
 
         $zipFile = $this->galleryZipCreator->create($images);
         clearstatcache(true, $zipFile);
@@ -74,17 +78,5 @@ final readonly class GalleryDownloadController
         $response->deleteFileAfterSend();
 
         return $response;
-    }
-
-    /**
-     * @return list<GalleryImage>
-     */
-    private function getImages(GalleryFolder $folder): array
-    {
-        if (!$folder->metadata->hideCoverInGallery) {
-            return $folder->images;
-        }
-
-        return array_filter($folder->images, static fn (GalleryImage $image) => !$image->isCover);
     }
 }

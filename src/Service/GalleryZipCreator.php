@@ -26,7 +26,7 @@ final readonly class GalleryZipCreator
     }
 
     /**
-     * @param list<GalleryImage> $images
+     * @param array<string, GalleryImage> $images zip-relative path (including filename) => image
      *
      * @return string path to the created ZIP file
      */
@@ -42,7 +42,7 @@ final readonly class GalleryZipCreator
             throw new \RuntimeException('Could not create ZIP archive.');
         }
 
-        foreach ($images as $image) {
+        foreach ($images as $zipPath => $image) {
             $path = $this->projectDir.'/'.$image->path;
 
             if (!is_file($path)) {
@@ -52,14 +52,14 @@ final readonly class GalleryZipCreator
                 throw new \RuntimeException(\sprintf('Gallery image "%s" does not exist.', $image->path));
             }
 
-            if (false === $zip->addFile($path, $image->filename)) {
+            if (false === $zip->addFile($path, $zipPath)) {
                 $zip->close();
                 @$this->fs->remove($temporaryFile);
 
                 throw new \RuntimeException(\sprintf('Could not add file "%s" to ZIP archive.', $image->path));
             }
 
-            $zip->setCompressionName($image->filename, \ZipArchive::CM_STORE);
+            $zip->setCompressionName($zipPath, \ZipArchive::CM_STORE);
         }
 
         if (false === $zip->close()) {
