@@ -10,7 +10,7 @@ declare(strict_types=1);
  * @license    LGPL-3.0-or-later
  */
 
-namespace Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Service;
+namespace Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Repository;
 
 use Contao\CoreBundle\Framework\ContaoFramework;
 use Contao\FilesModel;

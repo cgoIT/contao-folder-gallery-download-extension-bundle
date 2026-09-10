@@ -15,7 +15,7 @@ namespace Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Tests\Service;
 use Cgoit\ContaoFolderGalleryBundle\Model\GalleryFolder;
 use Cgoit\ContaoFolderGalleryBundle\Model\GalleryImage;
 use Cgoit\ContaoFolderGalleryBundle\Model\GalleryMetadata;
-use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Service\GalleryZipExclusionRepository;
+use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Repository\GalleryZipExclusionRepository;
 use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Service\GalleryZipImageCollector;
 use Contao\FilesModel;
 use Contao\StringUtil;

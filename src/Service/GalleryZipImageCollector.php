@@ -14,6 +14,7 @@ namespace Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Service;
 
 use Cgoit\ContaoFolderGalleryBundle\Model\GalleryFolder;
 use Cgoit\ContaoFolderGalleryBundle\Model\GalleryImage;
+use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Repository\GalleryZipExclusionRepository;
 use Symfony\Component\Filesystem\Path;
 
 final readonly class GalleryZipImageCollector

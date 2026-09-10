@@ -10,9 +10,9 @@ declare(strict_types=1);
  * @license    LGPL-3.0-or-later
  */
 
-namespace Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Tests\Service;
+namespace Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Tests\Repository;
 
-use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Service\GalleryZipExclusionRepository;
+use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Repository\GalleryZipExclusionRepository;
 use Contao\FilesModel;
 use Contao\StringUtil;
 use Contao\TestCase\ContaoTestCase;
