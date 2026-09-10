@@ -15,16 +15,11 @@ namespace Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Tests\Service;
 use Cgoit\ContaoFolderGalleryBundle\Model\GalleryFolder;
 use Cgoit\ContaoFolderGalleryBundle\Model\GalleryImage;
 use Cgoit\ContaoFolderGalleryBundle\Model\GalleryMetadata;
-use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Repository\GalleryZipExclusionRepository;
 use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Service\GalleryZipImageCollector;
-use Contao\FilesModel;
-use Contao\StringUtil;
 use Contao\TestCase\ContaoTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\UsesClass;
 
 #[CoversClass(GalleryZipImageCollector::class)]
-#[UsesClass(GalleryZipExclusionRepository::class)]
 final class GalleryZipImageCollectorTest extends ContaoTestCase
 {
     public function testCollectsImagesFromRootAndSubfolders(): void
@@ -35,7 +30,7 @@ final class GalleryZipImageCollectorTest extends ContaoTestCase
         $subFolder = $this->createFolder('/gallery/rooms', images: [$subImage]);
         $folder = $this->createFolder('/gallery', images: [$rootImage], folders: [$subFolder]);
 
-        $collector = new GalleryZipImageCollector($this->createExclusionRepository());
+        $collector = new GalleryZipImageCollector();
 
         $images = $collector->collect($folder);
 
@@ -54,7 +49,7 @@ final class GalleryZipImageCollectorTest extends ContaoTestCase
         );
         $folder = $this->createFolder('/gallery', images: [$rootImage], folders: [$subFolder]);
 
-        $collector = new GalleryZipImageCollector($this->createExclusionRepository());
+        $collector = new GalleryZipImageCollector();
 
         $images = $collector->collect($folder);
 
@@ -74,34 +69,11 @@ final class GalleryZipImageCollectorTest extends ContaoTestCase
             metadata: new GalleryMetadata(hideCoverInGallery: true),
         );
 
-        $collector = new GalleryZipImageCollector($this->createExclusionRepository());
+        $collector = new GalleryZipImageCollector();
 
         $images = $collector->collect($folder);
 
         $this->assertSame(['rooms/sub-cover.jpg'], array_keys($images));
-    }
-
-    public function testFiltersImagesExcludedViaZipFlag(): void
-    {
-        $excludedUuid = '00000000-0000-0000-0000-000000000001';
-        $includedUuid = '00000000-0000-0000-0000-000000000002';
-
-        $excludedImage = $this->createImage($excludedUuid, 'excluded.jpg');
-        $includedImage = $this->createImage($includedUuid, 'included.jpg');
-
-        $folder = $this->createFolder('/gallery', images: [$excludedImage, $includedImage]);
-
-        $excludedFile = $this->createClassWithPropertiesStub(FilesModel::class, [
-            'uuid' => StringUtil::uuidToBin($excludedUuid),
-        ]);
-
-        $collector = new GalleryZipImageCollector(
-            $this->createExclusionRepository([$excludedFile]),
-        );
-
-        $images = $collector->collect($folder);
-
-        $this->assertSame(['included.jpg'], array_keys($images));
     }
 
     public function testReturnsEmptyArrayWhenRootFolderIsUnpublished(): void
@@ -112,20 +84,9 @@ final class GalleryZipImageCollectorTest extends ContaoTestCase
             metadata: new GalleryMetadata(publishedUntil: new \DateTimeImmutable('2000-01-01')),
         );
 
-        $collector = new GalleryZipImageCollector($this->createExclusionRepository());
+        $collector = new GalleryZipImageCollector();
 
         $this->assertSame([], $collector->collect($folder));
-    }
-
-    /**
-     * @param list<FilesModel>|null $files
-     */
-    private function createExclusionRepository(array|null $files = null): GalleryZipExclusionRepository
-    {
-        $adapter = $this->createConfiguredAdapterStub(['findBy' => $files]);
-        $framework = $this->createContaoFrameworkStub([FilesModel::class => $adapter]);
-
-        return new GalleryZipExclusionRepository($framework);
     }
 
     private function createImage(string $uuid, string $filename, bool $isCover = false): GalleryImage

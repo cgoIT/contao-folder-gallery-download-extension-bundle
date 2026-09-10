@@ -14,42 +14,22 @@ namespace Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Service;
 
 use Cgoit\ContaoFolderGalleryBundle\Model\GalleryFolder;
 use Cgoit\ContaoFolderGalleryBundle\Model\GalleryImage;
-use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Repository\GalleryZipExclusionRepository;
 use Symfony\Component\Filesystem\Path;
 
 final readonly class GalleryZipImageCollector
 {
-    public function __construct(private GalleryZipExclusionRepository $exclusionRepository)
-    {
-    }
-
     /**
      * Recursively collects all images of a gallery folder and its subfolders, keyed by
      * their path inside the ZIP archive (mirroring the filesystem folder structure), with
-     * unpublished (sub-)folders, hidden cover images and individually excluded images removed.
+     * unpublished (sub-)folders and hidden cover images removed. Images hidden via the
+     * hideInGallery flag never reach $folder->images in the first place, since the base
+     * bundle already filters them out when loading the folder.
      *
      * @return array<string, GalleryImage>
      */
     public function collect(GalleryFolder $folder): array
     {
-        $images = $this->collectFromFolder($folder, '');
-
-        if ([] === $images) {
-            return [];
-        }
-
-        $excludedUuids = $this->exclusionRepository->findExcludedUuids($folder->filesystemDirectory);
-
-        if ([] === $excludedUuids) {
-            return $images;
-        }
-
-        $excludedUuids = array_flip($excludedUuids);
-
-        return array_filter(
-            $images,
-            static fn (GalleryImage $image): bool => !isset($excludedUuids[$image->uuid]),
-        );
+        return $this->collectFromFolder($folder, '');
     }
 
     /**
