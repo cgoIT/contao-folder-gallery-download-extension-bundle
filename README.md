@@ -12,7 +12,8 @@ Das **Contao Folder Gallery Download Extension Bundle** erweitert das
 um eine Download-Funktion für einzelne Galerien.
 
 Innerhalb einer Galerieansicht wird eine zusätzliche Action angezeigt, über die
-sämtliche Bilder der aktuellen Galerie als ZIP-Datei heruntergeladen werden können.
+sämtliche Bilder der aktuellen Galerie – einschließlich ihrer Unterordner – als
+ZIP-Datei heruntergeladen werden können.
 
 Die ZIP-Datei wird serverseitig erzeugt und anschließend als Datei zum Download
 bereitgestellt. Die Bilder werden dabei nicht in den PHP-Speicher geladen.
@@ -21,6 +22,8 @@ bereitgestellt. Die Bilder werden dabei nicht in den PHP-Speicher geladen.
 >
 > Dieses Bundle erweitert das [Contao Folder Gallery Bundle](https://github.com/cgoIT/contao-folder-gallery-bundle)
 > und kann nicht unabhängig davon verwendet werden.
+>
+> Zusätzlich wird die PHP-Erweiterung `zip` benötigt.
 
 ## Installation
 
@@ -44,8 +47,9 @@ Nach der Installation ist keine zusätzliche Datenbankmigration erforderlich.
 Nach der Installation steht in einer Galerieansicht automatisch eine zusätzliche
 Download-Action zur Verfügung.
 
-Die Action wird ausschließlich innerhalb einer **Galerieansicht mit Bildern**
-angezeigt. Sie bezieht sich immer auf die aktuell dargestellte Galerie.
+Die Action wird innerhalb der **Galerieansicht** eines Ordners angezeigt, nicht in
+der Galerie-Übersicht. Sie bezieht sich immer auf die aktuell dargestellte Galerie
+einschließlich aller Unterordner.
 
 Enthält die Galerie keine herunterladbaren Bilder – etwa weil sie leer ist, nur
 unveröffentlichte Unterordner enthält oder alle Bilder ausgeblendet sind –, wird
@@ -61,31 +65,75 @@ Beispielsweise kann eine Galerie
 │   ├── IMG_0002.jpg
 │   └── ...
 ├── Samstag/
+│   └── ...
 └── Sonntag/
+    └── ...
 ```
 
-über die Galerieansicht von `Freitag` als ZIP-Datei heruntergeladen werden.
+über die Galerieansicht von `Freitag` als ZIP-Datei heruntergeladen werden. Über die
+Galerieansicht von `2025` enthält der Download dagegen die Bilder aller drei Tage.
 
-Der erzeugte Download heißt standardmäßig entsprechend dem Namen der Galerie,
-beispielsweise:
+Als Dateiname des Downloads wird der in den Metadaten gepflegte Titel der Galerie
+verwendet. Ist kein Titel gepflegt, ergibt sich der Name aus dem letzten Teil des
+Galeriepfads in der URL, beispielsweise:
 
 ```text
 freitag.zip
 ```
 
+Zeichen, die in Dateinamen auf gängigen Betriebssystemen nicht zulässig sind, werden
+dabei ersetzt.
+
 ## Download
 
-Beim Aufruf der Download-Action werden die in der aktuellen Galerie enthaltenen
-Bilder serverseitig zu einer ZIP-Datei zusammengefasst.
+Beim Aufruf der Download-Action werden die Bilder der aktuellen Galerie und ihrer
+Unterordner serverseitig zu einer ZIP-Datei zusammengefasst.
 
 Dabei gilt:
 
 - Die Originaldateien werden direkt aus dem Contao-Dateisystem gelesen.
 - Die Bilddateien werden nicht in den PHP-Speicher geladen.
 - Das ZIP-Archiv wird als temporäre Datei auf dem Server erzeugt.
-- Anschließend wird das erzeugte Archiv als Datei an den Browser ausgeliefert.
-- Die Dateien innerhalb des ZIP-Archivs erhalten ihre ursprünglichen Dateinamen.
-- Die ursprüngliche Ordnerstruktur des Servers wird nicht in das ZIP übernommen.
+- Anschließend wird das erzeugte Archiv als Datei an den Browser ausgeliefert und
+  danach wieder gelöscht.
+
+### Enthaltene Bilder
+
+Der Download enthält dieselben Bilder, die auch im Frontend zu sehen sind:
+
+- Bilder der aktuellen Galerie sowie – rekursiv – aller Unterordner.
+- Unveröffentlichte Ordner (siehe **Veröffentlicht ab** / **Veröffentlicht bis** in
+  den Metadaten des Folder Gallery Bundles) werden samt ihrer Unterordner
+  übersprungen.
+- Bilder, für die in der Contao-Dateiverwaltung die Option
+  **In Ordner-Galerie verbergen** aktiviert ist, sind nicht enthalten (siehe
+  [Einzelne Bilder aus der Galerie ausblenden](https://github.com/cgoIT/contao-folder-gallery-bundle#einzelne-bilder-aus-der-galerie-ausblenden)).
+- Ist für einen Ordner **Titelbild in Galerie verbergen** aktiviert, ist das
+  Titelbild dieses Ordners nicht enthalten.
+
+### Aufbau des ZIP-Archivs
+
+Die Bilder der aktuellen Galerie liegen auf oberster Ebene des Archivs. Bilder aus
+Unterordnern werden in entsprechenden Ordnern abgelegt, die die Ordnerstruktur
+unterhalb der Galerie widerspiegeln. Für die Ordner werden die Verzeichnisnamen im
+Dateisystem verwendet, die Bilder behalten ihre ursprünglichen Dateinamen.
+
+Der Download der Galerie `2025` aus dem obigen Beispiel ergibt damit:
+
+```text
+2025.zip
+├── Freitag/
+│   ├── IMG_0001.jpg
+│   ├── IMG_0002.jpg
+│   └── ...
+├── Samstag/
+│   └── ...
+└── Sonntag/
+    └── ...
+```
+
+Der Pfad der Galerie auf dem Server (z. B. `files/galerie/2025`) wird nicht in das
+Archiv übernommen.
 
 ### Keine zusätzliche Bildkomprimierung
 
@@ -149,8 +197,8 @@ standardmäßig aktiviert und kann über `disable()` deaktiviert werden.
 Für Galerien ohne herunterladbare Bilder wird das Event nicht ausgelöst, da die
 Action in diesem Fall ohnehin nicht angezeigt wird.
 
-Ein Event Listener kann beispielsweise den Download für bestimmte Ordner
-unterdrücken:
+Ein Event Listener kann die Action beispielsweise für bestimmte Ordner
+ausblenden:
 
 ```php
 <?php
@@ -178,6 +226,12 @@ Damit können beispielsweise abhängig von Ordnerpfad, Metadaten, Galerie oder
 aktueller Seite eigene Regeln für die Anzeige der Download-Action umgesetzt
 werden.
 
+> **Hinweis**
+>
+> Das Event steuert ausschließlich die Anzeige der Action. Der Download-Endpunkt
+> selbst wertet das Event nicht aus – eine über das Event ausgeblendete Galerie
+> kann über die Download-URL weiterhin heruntergeladen werden.
+
 ### Visuelle Darstellung des Links im Frontend
 
 Die Action besitzt eine eigene CSS-Klasse und kann daher über das eigene Theme angepasst werden.
@@ -199,7 +253,7 @@ Das Bundle stellt eine Gallery-Action bereit, die über das Action-System des
 Contao Folder Gallery Bundles automatisch erkannt wird.
 
 Die Action erzeugt für die aktuelle Galerie einen Link zu einem eigenen
-Download-Endpunkt.
+Download-Endpunkt (`/_folder-gallery/download/{moduleId}/{path}`).
 
 Vereinfacht ergibt sich folgender Ablauf:
 
@@ -207,17 +261,18 @@ Vereinfacht ergibt sich folgender Ablauf:
 Galerieansicht
       │
       ▼
-Download-Action
+DownloadGalleryAction
+      │
+      ├── Bilder ermitteln (keine Bilder → keine Action)
+      └── GalleryDownloadActionEvent auslösen
       │
       ▼
-Download-Controller
+GalleryDownloadController
       │
-      ▼
-GalleryZipCreator
-      │
-      ├── Galerie-Bilder ermitteln
-      ├── temporäres ZIP erzeugen
-      └── Bilder hinzufügen
+      ├── GalleryZipImageCollector: Bilder rekursiv ermitteln
+      │                             (keine Bilder → 404)
+      ├── GalleryZipCreator: temporäres ZIP erzeugen
+      └── GalleryDownloadFilenameGenerator: Dateiname bestimmen
       │
       ▼
 BinaryFileResponse
