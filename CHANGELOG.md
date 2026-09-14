@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.0](https://github.com/cgoIT/contao-folder-gallery-download-extension-bundle/compare/v1.1.1...v1.2.0) (2026-09-14)
+
+
+### Features
+
+* enable recursive downloads of galleries as zip ([36d0011](https://github.com/cgoIT/contao-folder-gallery-download-extension-bundle/commit/36d0011ce3cde3ace28042c9be578d09d813deee))
+
+
+### Bug Fixes
+
+* add minimum version of contao-folder-gallery-bundle to composer.json ([ca4ce29](https://github.com/cgoIT/contao-folder-gallery-download-extension-bundle/commit/ca4ce298c241cf9d873205d9ede39fe9c395cae2))
+
 ## [1.1.1](https://github.com/cgoIT/contao-folder-gallery-download-extension-bundle/compare/v1.1.0...v1.1.1) (2026-08-16)
 
 
