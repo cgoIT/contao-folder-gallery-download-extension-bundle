@@ -19,16 +19,19 @@ use Cgoit\ContaoFolderGalleryBundle\Model\GalleryMetadata;
 use Cgoit\ContaoFolderGalleryBundle\Model\GalleryOverview;
 use Cgoit\ContaoFolderGalleryBundle\Model\GalleryRoot;
 use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Action\DownloadGalleryAction;
+use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Event\GalleryDownloadActionEvent;
+use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Service\GalleryDownloadAvailabilityChecker;
 use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Service\GalleryZipImageCollector;
 use Contao\PageModel;
-use PHPUnit\Framework\TestCase;
+use Contao\TestCase\ContaoTestCase;
+use Symfony\Component\HttpFoundation\UriSigner;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
-final class DownloadGalleryActionTest extends TestCase
+final class DownloadGalleryActionTest extends ContaoTestCase
 {
-    public function testCreatesAction(): void
+    public function testCreatesActionWithSignedUrl(): void
     {
         $folder = $this->createFolder('folder', images: [$this->createImage('image.jpg')]);
 
@@ -40,10 +43,12 @@ final class DownloadGalleryActionTest extends TestCase
                 'cgoit_contao_folder_gallery_download_extension',
                 [
                     'moduleId' => 42,
+                    'pageModel' => 7,
                     'path' => 'Folder',
                 ],
+                UrlGeneratorInterface::ABSOLUTE_URL,
             )
-            ->willReturn('/gallery/download/42/Folder')
+            ->willReturn('https://example.com/_folder-gallery/download/42/7/Folder')
         ;
 
         $translator = $this->createMock(TranslatorInterface::class);
@@ -68,22 +73,25 @@ final class DownloadGalleryActionTest extends TestCase
             ])
         ;
 
+        $uriSigner = new UriSigner('secret');
+
         $action = new DownloadGalleryAction(
             $urlGenerator,
+            $uriSigner,
             $translator,
-            $this->createStub(EventDispatcherInterface::class),
-            new GalleryZipImageCollector(),
+            $this->createAvailabilityChecker(),
         );
 
         $result = $action->createAction(
             $this->createOverview($folder),
             $folder,
-            $this->createStub(PageModel::class),
+            $this->mockPage(),
         );
 
         $this->assertInstanceOf(GalleryContentAction::class, $result);
         $this->assertSame('Galerie herunterladen', $result->label);
-        $this->assertSame('/gallery/download/42/Folder', $result->url);
+        $this->assertStringStartsWith('https://example.com/_folder-gallery/download/42/7/Folder?_hash=', $result->url);
+        $this->assertTrue($uriSigner->check($result->url));
         $this->assertSame('Alle Bilder der Galerie als ZIP-Datei herunterladen', $result->title);
         $this->assertSame('download', $result->type);
     }
@@ -93,17 +101,23 @@ final class DownloadGalleryActionTest extends TestCase
         $subFolder = $this->createFolder('rooms', images: [$this->createImage('room-1.jpg')]);
         $folder = $this->createFolder('folder', folders: [$subFolder]);
 
+        $urlGenerator = $this->createStub(UrlGeneratorInterface::class);
+        $urlGenerator
+            ->method('generate')
+            ->willReturn('https://example.com/_folder-gallery/download/42/7/Folder')
+        ;
+
         $action = new DownloadGalleryAction(
-            $this->createStub(UrlGeneratorInterface::class),
+            $urlGenerator,
+            new UriSigner('secret'),
             $this->createStub(TranslatorInterface::class),
-            $this->createStub(EventDispatcherInterface::class),
-            new GalleryZipImageCollector(),
+            $this->createAvailabilityChecker(),
         );
 
         $result = $action->createAction(
             $this->createOverview($folder),
             $folder,
-            $this->createStub(PageModel::class),
+            $this->mockPage(),
         );
 
         $this->assertInstanceOf(GalleryContentAction::class, $result);
@@ -133,18 +147,68 @@ final class DownloadGalleryActionTest extends TestCase
 
         $action = new DownloadGalleryAction(
             $urlGenerator,
+            new UriSigner('secret'),
             $this->createStub(TranslatorInterface::class),
-            $eventDispatcher,
-            new GalleryZipImageCollector(),
+            new GalleryDownloadAvailabilityChecker(new GalleryZipImageCollector(), $eventDispatcher),
         );
 
         $result = $action->createAction(
             $this->createOverview($folder),
             $folder,
-            $this->createStub(PageModel::class),
+            $this->mockPage(),
         );
 
         $this->assertNull($result);
+    }
+
+    public function testReturnsNullWhenEventListenerDisablesDownload(): void
+    {
+        $folder = $this->createFolder('folder', images: [$this->createImage('image.jpg')]);
+
+        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator
+            ->expects($this->never())
+            ->method('generate')
+        ;
+
+        $action = new DownloadGalleryAction(
+            $urlGenerator,
+            new UriSigner('secret'),
+            $this->createStub(TranslatorInterface::class),
+            $this->createAvailabilityChecker(enabled: false),
+        );
+
+        $result = $action->createAction(
+            $this->createOverview($folder),
+            $folder,
+            $this->mockPage(),
+        );
+
+        $this->assertNull($result);
+    }
+
+    private function createAvailabilityChecker(bool $enabled = true): GalleryDownloadAvailabilityChecker
+    {
+        $eventDispatcher = $this->createStub(EventDispatcherInterface::class);
+        $eventDispatcher
+            ->method('dispatch')
+            ->willReturnCallback(
+                static function (GalleryDownloadActionEvent $event) use ($enabled): GalleryDownloadActionEvent {
+                    if (!$enabled) {
+                        $event->disable();
+                    }
+
+                    return $event;
+                },
+            )
+        ;
+
+        return new GalleryDownloadAvailabilityChecker(new GalleryZipImageCollector(), $eventDispatcher);
+    }
+
+    private function mockPage(): PageModel
+    {
+        return $this->createClassWithPropertiesStub(PageModel::class, ['id' => 7]);
     }
 
     private function createImage(string $filename): GalleryImage

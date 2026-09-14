@@ -17,11 +17,10 @@ use Cgoit\ContaoFolderGalleryBundle\Action\GalleryContentActionInterface;
 use Cgoit\ContaoFolderGalleryBundle\Model\GalleryFolder;
 use Cgoit\ContaoFolderGalleryBundle\Model\GalleryOverview;
 use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Controller\GalleryDownloadController;
-use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Event\GalleryDownloadActionEvent;
-use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Service\GalleryZipImageCollector;
+use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Service\GalleryDownloadAvailabilityChecker;
 use Contao\PageModel;
+use Symfony\Component\HttpFoundation\UriSigner;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 final readonly class DownloadGalleryAction implements GalleryContentActionInterface
@@ -30,26 +29,31 @@ final readonly class DownloadGalleryAction implements GalleryContentActionInterf
 
     public function __construct(
         private UrlGeneratorInterface $urlGenerator,
+        private UriSigner $uriSigner,
         private TranslatorInterface $translator,
-        private EventDispatcherInterface $eventDispatcher,
-        private GalleryZipImageCollector $imageCollector,
+        private GalleryDownloadAvailabilityChecker $availabilityChecker,
     ) {
     }
 
     public function createAction(GalleryOverview $overview, GalleryFolder $folder, PageModel $page): GalleryContentAction|null
     {
-        // Don't offer a download that would end up in a 404 because the ZIP would be empty
-        if ([] === $this->imageCollector->collect($folder)) {
+        if (!$this->availabilityChecker->isAvailable($overview, $folder, $page)) {
             return null;
         }
 
-        $event = new GalleryDownloadActionEvent($overview, $folder, $page);
-
-        $this->eventDispatcher->dispatch($event);
-
-        if (!$event->isEnabled()) {
-            return null;
-        }
+        // The URL is signed so that the page ID, on which the page access check and the
+        // event listeners in the download controller rely, cannot be tampered with
+        $url = $this->uriSigner->sign(
+            $this->urlGenerator->generate(
+                GalleryDownloadController::DOWNLOAD_ROUTE_NAME,
+                [
+                    'moduleId' => $overview->getModuleId(),
+                    'pageModel' => (int) $page->id,
+                    'path' => $folder->getPath(),
+                ],
+                UrlGeneratorInterface::ABSOLUTE_URL,
+            ),
+        );
 
         return new GalleryContentAction(
             type: self::ACTION_TYPE,
@@ -58,13 +62,7 @@ final readonly class DownloadGalleryAction implements GalleryContentActionInterf
                 [],
                 'cgoit_contao_folder_gallery_download_extension',
             ),
-            url: $this->urlGenerator->generate(
-                GalleryDownloadController::DOWNLOAD_ROUTE_NAME,
-                [
-                    'moduleId' => $overview->getModuleId(),
-                    'path' => $folder->getPath(),
-                ],
-            ),
+            url: $url,
             title: $this->translator->trans(
                 'download_gallery.action.title',
                 [],

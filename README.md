@@ -56,6 +56,9 @@ unveröffentlichte Unterordner enthält oder alle Bilder ausgeblendet sind –, 
 keine Download-Action angezeigt. Wird der Download-Endpunkt für eine solche
 Galerie dennoch direkt aufgerufen, antwortet er mit dem HTTP-Status `404`.
 
+Der Download ist genauso geschützt wie die Seite, auf der die Galerie eingebunden ist
+(siehe [Zugriffsschutz](#zugriffsschutz)).
+
 Beispielsweise kann eine Galerie
 
 ```text
@@ -96,6 +99,31 @@ Dabei gilt:
 - Das ZIP-Archiv wird als temporäre Datei auf dem Server erzeugt.
 - Anschließend wird das erzeugte Archiv als Datei an den Browser ausgeliefert und
   danach wieder gelöscht.
+
+### Zugriffsschutz
+
+Der Download-Link enthält neben der Galerie auch die ID der Seite, auf der die
+Galerie dargestellt wird, und ist mit dem Contao-eigenen URI-Signer signiert. Bei
+jedem Download wird geprüft:
+
+- **Signatur:** Nicht signierte oder nachträglich veränderte Links (z. B. mit einer
+  anderen Seiten-ID) werden mit `404` abgelehnt.
+- **Seite:** Die Seite muss existieren und veröffentlicht sein, ebenso ihr
+  Startpunkt. In der Frontend-Vorschau werden auch unveröffentlichte Seiten
+  berücksichtigt.
+- **Seitenschutz:** Ist die Seite geschützt, gelten dieselben Regeln wie für die
+  Seite selbst. Die Prüfung übernimmt Contao; ohne passende Mitgliedergruppe wird der
+  Download verweigert. Auch der Wartungsmodus wird berücksichtigt.
+- **Galerie:** Die Galerie muss herunterladbare Bilder enthalten, und kein Listener
+  des [`GalleryDownloadActionEvent`](#download-action-über-ein-event-deaktivieren)
+  darf den Download deaktiviert haben.
+
+> **Hinweis**
+>
+> Die Signatur basiert auf dem Secret der Anwendung (`APP_SECRET`). Wird dieses
+> geändert, werden bestehende Download-Links ungültig. Da die Links beim Aufruf der
+> Galerieansicht immer neu erzeugt werden, betrifft das nur gespeicherte oder
+> anderweitig weitergegebene Links.
 
 ### Enthaltene Bilder
 
@@ -188,17 +216,29 @@ des erzeugten ZIP-Archivs.
 Die Download-Action wird standardmäßig für jede veröffentlichte Galerie mit
 herunterladbaren Bildern angezeigt. Über das Symfony Event
 `Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Event\GalleryDownloadActionEvent`
-kann die Anzeige der Action individuell beeinflusst werden.
+kann der Download individuell deaktiviert werden.
 
-Das Event wird vor der Erstellung der Action ausgelöst und enthält den aktuellen
-`GalleryOverview`, den `GalleryFolder` sowie das `PageModel`. Die Action ist
+Das Event enthält den aktuellen `GalleryOverview`, den `GalleryFolder` sowie das
+`PageModel` der Seite, auf der die Galerie dargestellt wird. Der Download ist
 standardmäßig aktiviert und kann über `disable()` deaktiviert werden.
 
-Für Galerien ohne herunterladbare Bilder wird das Event nicht ausgelöst, da die
-Action in diesem Fall ohnehin nicht angezeigt wird.
+Das Event wird an zwei Stellen ausgelöst:
 
-Ein Event Listener kann die Action beispielsweise für bestimmte Ordner
-ausblenden:
+- beim Erzeugen der Action in der Galerieansicht – ein deaktivierter Download wird
+  dort nicht angezeigt,
+- beim Aufruf des Download-Endpunkts – ein deaktivierter Download wird dort mit
+  `404` abgelehnt.
+
+Eine über das Event deaktivierte Galerie kann damit auch über einen zuvor erzeugten
+Download-Link nicht mehr heruntergeladen werden. Listener sollten ihre Entscheidung
+deshalb ausschließlich anhand der Daten im Event treffen und nicht anhand des
+aktuellen Requests, da dieser beim Download nicht der Request der Galerieseite ist.
+
+Für Galerien ohne herunterladbare Bilder wird das Event nicht ausgelöst, da der
+Download in diesem Fall ohnehin nicht möglich ist.
+
+Ein Event Listener kann den Download beispielsweise für bestimmte Ordner
+deaktivieren:
 
 ```php
 <?php
@@ -223,14 +263,7 @@ final class GalleryDownloadActionListener
 ```
 
 Damit können beispielsweise abhängig von Ordnerpfad, Metadaten, Galerie oder
-aktueller Seite eigene Regeln für die Anzeige der Download-Action umgesetzt
-werden.
-
-> **Hinweis**
->
-> Das Event steuert ausschließlich die Anzeige der Action. Der Download-Endpunkt
-> selbst wertet das Event nicht aus – eine über das Event ausgeblendete Galerie
-> kann über die Download-URL weiterhin heruntergeladen werden.
+aktueller Seite eigene Regeln für den Download umgesetzt werden.
 
 ### Visuelle Darstellung des Links im Frontend
 
@@ -252,8 +285,8 @@ angepasst werden.
 Das Bundle stellt eine Gallery-Action bereit, die über das Action-System des
 Contao Folder Gallery Bundles automatisch erkannt wird.
 
-Die Action erzeugt für die aktuelle Galerie einen Link zu einem eigenen
-Download-Endpunkt (`/_folder-gallery/download/{moduleId}/{path}`).
+Die Action erzeugt für die aktuelle Galerie einen signierten Link zu einem eigenen
+Download-Endpunkt (`/_folder-gallery/download/{moduleId}/{pageModel}/{path}?_hash=…`).
 
 Vereinfacht ergibt sich folgender Ablauf:
 
@@ -263,14 +296,21 @@ Galerieansicht
       ▼
 DownloadGalleryAction
       │
-      ├── Bilder ermitteln (keine Bilder → keine Action)
-      └── GalleryDownloadActionEvent auslösen
+      ├── GalleryDownloadAvailabilityChecker: Bilder vorhanden und
+      │   GalleryDownloadActionEvent nicht deaktiviert? (sonst keine Action)
+      └── signierten Link erzeugen
+      │
+      ▼
+Contao-Core (PageAccessListener)
+      │
+      └── Seite laden, Seitenschutz prüfen
       │
       ▼
 GalleryDownloadController
       │
+      ├── Signatur und Veröffentlichung der Seite prüfen (sonst 404)
+      ├── GalleryDownloadAvailabilityChecker: erneute Prüfung (sonst 404)
       ├── GalleryZipImageCollector: Bilder rekursiv ermitteln
-      │                             (keine Bilder → 404)
       ├── GalleryZipCreator: temporäres ZIP erzeugen
       └── GalleryDownloadFilenameGenerator: Dateiname bestimmen
       │
