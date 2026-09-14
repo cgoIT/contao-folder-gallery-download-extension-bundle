@@ -12,11 +12,14 @@ declare(strict_types=1);
 
 namespace Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Tests\Action;
 
+use Cgoit\ContaoFolderGalleryBundle\Action\GalleryContentAction;
 use Cgoit\ContaoFolderGalleryBundle\Model\GalleryFolder;
+use Cgoit\ContaoFolderGalleryBundle\Model\GalleryImage;
 use Cgoit\ContaoFolderGalleryBundle\Model\GalleryMetadata;
 use Cgoit\ContaoFolderGalleryBundle\Model\GalleryOverview;
 use Cgoit\ContaoFolderGalleryBundle\Model\GalleryRoot;
 use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Action\DownloadGalleryAction;
+use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Service\GalleryZipImageCollector;
 use Contao\PageModel;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -27,23 +30,7 @@ final class DownloadGalleryActionTest extends TestCase
 {
     public function testCreatesAction(): void
     {
-        $folder = new GalleryFolder(
-            slug: '/folder',
-            title: 'Folder',
-            filesystemDirectory: 'folder',
-            trail: ['Folder'],
-            metadata: new GalleryMetadata(),
-            folders: [],
-            images: [],
-        );
-
-        $overview = new GalleryOverview(
-            root: new GalleryRoot('gallery', 42, '/root/filesystem'),
-            folders: [$folder],
-            folderIndex: ['folder' => $folder],
-        );
-
-        $page = $this->createStub(PageModel::class);
+        $folder = $this->createFolder('folder', images: [$this->createImage('image.jpg')]);
 
         $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
         $urlGenerator
@@ -81,23 +68,118 @@ final class DownloadGalleryActionTest extends TestCase
             ])
         ;
 
-        $eventDispatcher = $this->createStub(EventDispatcherInterface::class);
-
         $action = new DownloadGalleryAction(
             $urlGenerator,
             $translator,
-            $eventDispatcher,
+            $this->createStub(EventDispatcherInterface::class),
+            new GalleryZipImageCollector(),
         );
 
         $result = $action->createAction(
-            $overview,
+            $this->createOverview($folder),
             $folder,
-            $page,
+            $this->createStub(PageModel::class),
         );
 
+        $this->assertInstanceOf(GalleryContentAction::class, $result);
         $this->assertSame('Galerie herunterladen', $result->label);
         $this->assertSame('/gallery/download/42/Folder', $result->url);
         $this->assertSame('Alle Bilder der Galerie als ZIP-Datei herunterladen', $result->title);
         $this->assertSame('download', $result->type);
+    }
+
+    public function testCreatesActionWhenImagesExistOnlyInSubfolders(): void
+    {
+        $subFolder = $this->createFolder('rooms', images: [$this->createImage('room-1.jpg')]);
+        $folder = $this->createFolder('folder', folders: [$subFolder]);
+
+        $action = new DownloadGalleryAction(
+            $this->createStub(UrlGeneratorInterface::class),
+            $this->createStub(TranslatorInterface::class),
+            $this->createStub(EventDispatcherInterface::class),
+            new GalleryZipImageCollector(),
+        );
+
+        $result = $action->createAction(
+            $this->createOverview($folder),
+            $folder,
+            $this->createStub(PageModel::class),
+        );
+
+        $this->assertInstanceOf(GalleryContentAction::class, $result);
+    }
+
+    public function testReturnsNullWhenGalleryContainsNoDownloadableImages(): void
+    {
+        $unpublishedSubFolder = $this->createFolder(
+            'rooms',
+            images: [$this->createImage('room-1.jpg')],
+            metadata: new GalleryMetadata(publishedUntil: new \DateTimeImmutable('2000-01-01')),
+        );
+        $emptySubFolder = $this->createFolder('empty');
+        $folder = $this->createFolder('folder', folders: [$unpublishedSubFolder, $emptySubFolder]);
+
+        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator
+            ->expects($this->never())
+            ->method('generate')
+        ;
+
+        $eventDispatcher = $this->createMock(EventDispatcherInterface::class);
+        $eventDispatcher
+            ->expects($this->never())
+            ->method('dispatch')
+        ;
+
+        $action = new DownloadGalleryAction(
+            $urlGenerator,
+            $this->createStub(TranslatorInterface::class),
+            $eventDispatcher,
+            new GalleryZipImageCollector(),
+        );
+
+        $result = $action->createAction(
+            $this->createOverview($folder),
+            $folder,
+            $this->createStub(PageModel::class),
+        );
+
+        $this->assertNull($result);
+    }
+
+    private function createImage(string $filename): GalleryImage
+    {
+        return new GalleryImage(
+            uuid: '00000000-0000-0000-0000-000000000001',
+            path: 'files/'.$filename,
+            filename: $filename,
+            isCover: false,
+        );
+    }
+
+    /**
+     * @param list<GalleryImage>  $images
+     * @param list<GalleryFolder> $folders
+     */
+    private function createFolder(string $name, array $images = [], array $folders = [], GalleryMetadata|null $metadata = null): GalleryFolder
+    {
+        return new GalleryFolder(
+            slug: '/'.$name,
+            title: ucfirst($name),
+            filesystemDirectory: $name,
+            trail: [ucfirst($name)],
+            metadata: $metadata ?? new GalleryMetadata(),
+            folders: $folders,
+            images: $images,
+        );
+    }
+
+    private function createOverview(GalleryFolder $folder): GalleryOverview
+    {
+        return new GalleryOverview(
+            root: new GalleryRoot('gallery', 42, '/root/filesystem'),
+            folders: [$folder],
+            folderIndex: [$folder->filesystemDirectory => $folder],
+        );
     }
 }

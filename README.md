@@ -47,6 +47,11 @@ Download-Action zur Verfügung.
 Die Action wird ausschließlich innerhalb einer **Galerieansicht mit Bildern**
 angezeigt. Sie bezieht sich immer auf die aktuell dargestellte Galerie.
 
+Enthält die Galerie keine herunterladbaren Bilder – etwa weil sie leer ist, nur
+unveröffentlichte Unterordner enthält oder alle Bilder ausgeblendet sind –, wird
+keine Download-Action angezeigt. Wird der Download-Endpunkt für eine solche
+Galerie dennoch direkt aufgerufen, antwortet er mit dem HTTP-Status `404`.
+
 Beispielsweise kann eine Galerie
 
 ```text
@@ -132,14 +137,17 @@ des erzeugten ZIP-Archivs.
 
 ### Download-Action über ein Event deaktivieren
 
-Die Download-Action wird standardmäßig für jede veröffentlichte Galerie
-angezeigt. Über das Symfony Event
+Die Download-Action wird standardmäßig für jede veröffentlichte Galerie mit
+herunterladbaren Bildern angezeigt. Über das Symfony Event
 `Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Event\GalleryDownloadActionEvent`
 kann die Anzeige der Action individuell beeinflusst werden.
 
 Das Event wird vor der Erstellung der Action ausgelöst und enthält den aktuellen
 `GalleryOverview`, den `GalleryFolder` sowie das `PageModel`. Die Action ist
 standardmäßig aktiviert und kann über `disable()` deaktiviert werden.
+
+Für Galerien ohne herunterladbare Bilder wird das Event nicht ausgelöst, da die
+Action in diesem Fall ohnehin nicht angezeigt wird.
 
 Ein Event Listener kann beispielsweise den Download für bestimmte Ordner
 unterdrücken:

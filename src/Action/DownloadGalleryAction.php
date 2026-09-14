@@ -18,6 +18,7 @@ use Cgoit\ContaoFolderGalleryBundle\Model\GalleryFolder;
 use Cgoit\ContaoFolderGalleryBundle\Model\GalleryOverview;
 use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Controller\GalleryDownloadController;
 use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Event\GalleryDownloadActionEvent;
+use Cgoit\ContaoFolderGalleryDownloadExtensionBundle\Service\GalleryZipImageCollector;
 use Contao\PageModel;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
@@ -31,11 +32,17 @@ final readonly class DownloadGalleryAction implements GalleryContentActionInterf
         private UrlGeneratorInterface $urlGenerator,
         private TranslatorInterface $translator,
         private EventDispatcherInterface $eventDispatcher,
+        private GalleryZipImageCollector $imageCollector,
     ) {
     }
 
     public function createAction(GalleryOverview $overview, GalleryFolder $folder, PageModel $page): GalleryContentAction|null
     {
+        // Don't offer a download that would end up in a 404 because the ZIP would be empty
+        if ([] === $this->imageCollector->collect($folder)) {
+            return null;
+        }
+
         $event = new GalleryDownloadActionEvent($overview, $folder, $page);
 
         $this->eventDispatcher->dispatch($event);
